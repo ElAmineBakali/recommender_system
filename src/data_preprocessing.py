@@ -9,8 +9,6 @@ nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
-nltk.download('punkt_tab')
-
 
 # Configuración de rutas
 RAW_DATA_PATH = os.path.join('data', 'raw', 'movies_dataset.csv')
@@ -21,7 +19,7 @@ class DataPreprocessor:
     def __init__(self):
         self.lemmatizer = WordNetLemmatizer()
         self.stop_words = set(stopwords.words('english'))
-    
+
     def preprocess_text(self, text):
         """Preprocesa texto: tokenización, eliminación de stop words y lematización."""
         if not isinstance(text, str) or not text.strip():
@@ -30,7 +28,7 @@ class DataPreprocessor:
         tokens = word_tokenize(text.lower())
         filtered_tokens = [self.lemmatizer.lemmatize(word) for word in tokens if word.isalnum() and word not in self.stop_words]
         return " ".join(filtered_tokens)
-    
+
     def preprocess_dataset(self, input_path, output_path):
         """Carga, limpia y guarda el dataset preprocesado."""
         if not os.path.exists(input_path):
@@ -39,13 +37,11 @@ class DataPreprocessor:
         # Carga el dataset original
         df = pd.read_csv(input_path)
 
-        if 'synopsis' not in df.columns:
-            raise KeyError("La columna 'synopsis' no existe en el dataset original.")
-
-        # Manejo de valores nulos en la columna 'synopsis'
+        # Manejo de valores nulos en las columnas 'synopsis' y 'genres'
         df['synopsis'] = df['synopsis'].fillna("")
+        df['genres'] = df['genres'].fillna("")
 
-        # Aplica el preprocesamiento de texto
+        # Aplica el preprocesamiento de texto a la sinopsis
         df['processed_synopsis'] = df['synopsis'].apply(self.preprocess_text)
 
         # Verifica si la columna procesada está vacía

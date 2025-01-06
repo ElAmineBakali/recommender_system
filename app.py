@@ -1,41 +1,79 @@
-import streamlit as st
-from src.recommendations import MovieRecommender
-from src.user_ratings import UserRatings
+import tkinter as tk
+from tkinter import ttk, messagebox
 import pandas as pd
+from src.recommendations import MovieRecommender
 
-# Cargar datos de películas
-movies_df = pd.read_csv('C:/Users/bakal/visualCode/recommender_system/data/processed/processed_movies.csv')
+# Cargar los datos de películas y resetear los índices
+movies_df = pd.read_csv('data/processed/processed_movies.csv')
+movies_df = movies_df.drop_duplicates(subset='title').reset_index(drop=True)
 
-def show_movie_details(movie_index):
-    movie = movies_df.iloc[movie_index]
-    st.write(f"**{movie['title']}**")
-    st.write(f"Sinopsis: {movie['synopsis']}")
+# Crear la ventana principal
+root = tk.Tk()
+root.title("🎬 Movie Recommender App")
+root.geometry("600x500")
+root.configure(bg="#2C3E50")
 
-def main():
-    st.title("Sistema de Recomendación de Películas")
+# Estilos personalizados estilo oscuro
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TLabel", background="#2C3E50", foreground="#ECF0F1", font=("Helvetica", 12))
+style.configure("TButton", background="#E74C3C", foreground="#FFFFFF", font=("Helvetica", 12), padding=5)
+style.configure("TCombobox", background="#34495E", foreground="#FFFFFF", font=("Helvetica", 12))
+
+# Función para mostrar los detalles de la película seleccionada
+def show_movie_details():
+    selected_index = movie_combobox.current()
+    if selected_index == -1:
+        messagebox.showerror("Error", "Por favor selecciona una película.")
+        return
+
+    movie = movies_df.iloc[selected_index]
+    details = f"Título: {movie['title']}\n\nSinopsis: {movie['synopsis']}"
+    movie_details_label.config(text=details)
+
+# Función para generar recomendaciones
+def get_recommendations():
+    selected_index = movie_combobox.current()
+    if selected_index == -1:
+        messagebox.showerror("Error", "Por favor selecciona una película.")
+        return
 
     recommender = MovieRecommender()
+    recommendations = recommender.recommend(selected_index, top_n=5)
 
-    # Mostrar las películas disponibles
-    movie_titles = movies_df['title'].tolist()
-    movie_index = st.selectbox("Selecciona una película", range(len(movie_titles)), format_func=lambda x: movie_titles[x])
+    # Validar si los índices están dentro del rango del DataFrame
+    valid_indices = [idx for idx in recommendations if idx < len(movies_df)]
+    print(f"Recomendaciones válidas: {valid_indices}")  # Log para depuración
 
-    # Mostrar detalles de la película seleccionada
-    show_movie_details(movie_index)
+    # Eliminar la película base de las recomendaciones (si está presente)
+    filtered_indices = [idx for idx in valid_indices if idx != selected_index]
+    print(f"Recomendaciones filtradas: {filtered_indices}")  # Log para depuración
 
-    # Valorar la película
-    rating = st.slider("Valora esta película", 1, 5, 3)
-    user_ratings = UserRatings()
-    if st.button("Valorar"):
-        user_ratings.rate_movie(movie_index, rating)
-        st.write(f"Gracias por valorar la película con {rating} estrellas.")
+    # Convertir índices a títulos
+    recommended_titles = [movies_df.iloc[i]['title'] for i in filtered_indices]
+    if recommended_titles:
+        recommendations_label.config(text="\n".join(recommended_titles))
+    else:
+        recommendations_label.config(text="No se encontraron recomendaciones válidas.")
 
-    # Obtener recomendaciones basadas en la película seleccionada
-    if st.button("Obtener recomendaciones"):
-        similar_movies = recommender.recommend(movie_index)
-        st.write("Películas similares recomendadas:")
-        for idx in similar_movies:
-            st.write(movies_df.iloc[idx]['title'])
+# Crear widgets
+main_frame = ttk.Frame(root, padding=20)
+main_frame.pack(expand=True)
 
-if __name__ == "__main__":
-    main()
+movie_combobox = ttk.Combobox(main_frame, values=movies_df['title'].tolist(), width=50)
+movie_combobox.grid(row=0, column=0, columnspan=2, pady=10)
+
+select_button = ttk.Button(main_frame, text="Mostrar Detalles", command=show_movie_details)
+select_button.grid(row=1, column=0, padx=5, pady=10)
+
+recommend_button = ttk.Button(main_frame, text="Obtener Recomendaciones", command=get_recommendations)
+recommend_button.grid(row=1, column=1, padx=5, pady=10)
+
+movie_details_label = ttk.Label(main_frame, text="", wraplength=500, justify="left")
+movie_details_label.grid(row=2, column=0, columnspan=2, pady=10)
+
+recommendations_label = ttk.Label(main_frame, text="", wraplength=500, justify="left")
+recommendations_label.grid(row=3, column=0, columnspan=2, pady=10)
+
+# Ejecutar la aplicación
+root.mainloop()

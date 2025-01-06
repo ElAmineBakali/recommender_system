@@ -2,6 +2,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import os
 import numpy as np
+import pandas as pd
 
 TFIDF_VECTORS_PATH = os.path.join('data', 'features', 'tfidf_matrix.pkl')
 
@@ -17,12 +18,20 @@ class SimilarityModel:
         """Encuentra las películas más similares dado un índice."""
         # Asegúrate de que la fila seleccionada sea 2D para cosine_similarity
         movie_vector = self.tfidf_matrix[movie_index].reshape(1, -1)
-        similarities = cosine_similarity(movie_vector, self.tfidf_matrix)
-        similar_indices = similarities.argsort()[0, -top_n-1:-1][::-1]
-        return similar_indices
+        
+        # Calcular similitudes para todas las películas
+        similarities = cosine_similarity(movie_vector, self.tfidf_matrix).flatten()
+        
+        # Crear una lista de tuplas (índice, similitud) y ordenarlas por similitud
+        similar_movies = [(i, sim) for i, sim in enumerate(similarities) if i != movie_index]
+        similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)
+        
+        # Retornar solo los índices de las películas más similares
+        return [movie[0] for movie in similar_movies[:top_n]]
 
-# Ejecución de prueba
+# Bloque de prueba
 if __name__ == "__main__":
-    import pandas as pd  # Import necesario solo si tfidf_matrix es un DataFrame
     model = SimilarityModel()
-    print("Películas similares:", model.find_similar(0, top_n=5))
+    movie_index = 0  # Cambia este índice para probar con diferentes películas
+    similar_movies = model.find_similar(movie_index, top_n=5)
+    print(f"Películas similares al índice {movie_index}: {similar_movies}")

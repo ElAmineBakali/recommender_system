@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Cargar los datos procesados
-movies_df = pd.read_csv('data/processed/movies_dataset.csv')
+movies_df = pd.read_csv('./data/processed/processed_movies.csv')
 
 class UserRatings:
     def __init__(self):
